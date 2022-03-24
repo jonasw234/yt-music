@@ -1,5 +1,5 @@
 # yt-music
-Downloads music from YouTube channels. Set download folder with `export YT_MUSIC_DIR="DESTINATION"`.  
+Downloads music from YouTube channels. Set download folder with `export YT_MUSIC_PATH="DESTINATION"`.  
 
 Needs [`yt-dlp`](https://github.com/yt-dlp/yt-dlp), [`titlecase`](https://github.com/wezm/titlecase), [`mp3splt`](https://github.com/mp3splt/mp3splt), [`eyeD3`](https://github.com/nicfit/eyeD3), and [`jq`](https://github.com/stedolan/jq).  
 
