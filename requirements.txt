@@ -1,0 +1,4 @@
+eyed3
+pydub
+titlecase
+yt_dlp
