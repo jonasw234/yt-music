@@ -1,4 +1,6 @@
+bs4
 eyed3
 pydub
 titlecase
+wikipedia
 yt_dlp
