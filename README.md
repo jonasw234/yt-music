@@ -10,4 +10,5 @@ It tries to download the file (skipping parts marked by SponsorBlock API), set c
 Should be seen as an inspiration and adopted for your needs/favorite music channels.
 
 ## Python version
-The Python version is currently in beta, but will be the one I update in the future. It’s not tested extensively yet though, so there might be more bugs than in the Bash version.
+The Python version is currently in beta, but will be the one I update in the future. It’s not tested extensively yet though, so there might be more bugs than in the Bash version.  
+It needs [`mp3gain`](https://mp3gain.sourceforge.net/download.php) installed in your PATH.
