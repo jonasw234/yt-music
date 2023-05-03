@@ -5,6 +5,7 @@ import logging
 import os
 import re
 import shutil
+import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -35,55 +36,65 @@ def normalize_filename(filename: str, uploader: str = "") -> str:
     Returns
     -------
     str
-        The normalized filename.
+        The normalized filename in the form `Artist - Title`.
     """
     logging.info("Normalizing filename.")
     new_filename = os.path.basename(filename).lower()
-    # Order matters: Some replacements build on top of others!
+
+    # Order matters for groups: Some replacements build on top of others!
     replace_chars = {
-        "｜": "_",
-        "|": "_",
+        # Needs to come first, difficult to remove later
+        f" // {uploader}": "",
+        # Replacements of common annoyances
+        "'": "’",
         "/": "",
-        '"': "",
+        "|": "",
+        "–": "",
+        "⧸": "",
         "＂": "",
-        "  ": " ",
-        "⧸": "/",
+        "｜": "",
+        '"': "",
+        # Mostly suffixes in video titles
+        " (audio)": "",
+        " (hq)": "",
         " (lyric video)": "",
         " (lyrics)": "",
+        " (music video)": "",
         " (official animated video)": "",
+        " (official audio)": "",
         " (official lyric video)": "",
         " (official lyrics video)": "",
         " (official music video)": "",
         " (official video)": "",
-        " [official video]": "",
-        " – official video clip": "",
-        " (official)": "",
-        " (audio)": "",
-        " // official music video": "",
-        " // official lyric video": "",
-        f" // {uploader}": "",
-        " (offizielles video)": "",
-        " (official audio)": "",
-        " (hq)": "",
         " (official visualizer)": "",
-        " (music video)": "",
+        " (official)": "",
+        " (offizielles video)": "",
+        " [official video]": "",
+        " official audio video": "",
+        " official lyric video": "",
+        " official music video": "",
+        " official video clip": "",
         " official video": "",
+        " – official video clip": "",
         f" ({datetime.now().year})": "",
+        f"_ {uploader}": "",
+        # Normalize “featuring”
         " ft. ": " feat. ",
         " ft.": " feat.",
-        f"_ {uploader}": "",
-        "_ official audio video": "",
-        "_ official lyric video": "",
-        "_ official music video": "",
-        "'": "’",
+        # Needs to come last, might be necessary after previous replacements
+        "  ": " ",
     }
-
     for char, repl in replace_chars.items():
         new_filename = new_filename.replace(char, repl)
 
+    # Sometimes artists name their videos: `Artist: "Title"`
+    parts = new_filename.split("： ")
+    if len(parts) >= 2 and parts[0] in uploader.lower():
+        new_filename = new_filename.replace("： ", " - ", 1)
+
     # Titlecase can’t handle cases like `hammerfall – hammer of the dawn.mp3` (converts
     # it to `Hammerfall – Hammer of the dawn.mp3`)
-    # Removing the extension fixes this
+    # Removing the extension temporarily fixes this
     new_filename = f"{titlecase(os.path.splitext(new_filename)[0])}.mp3"
 
     logging.debug("New filename: %s", new_filename)
@@ -284,9 +295,7 @@ def process_audio(url: str, album: str = "", genre: str = ""):
     except ValueError:
         # Sometimes artists have their own channel and publish songs only with the title
         title = new_filename.replace(".mp3", "")
-        uploader = titlecase(info_dict["uploader"])
-        if uploader:
-            artist = uploader
+        artist = titlecase(info_dict["uploader"].replace(" - Topic", ""))
 
     # Trim silence at beginning and end, normalize to 95 dB
     edit_audio(filename)
@@ -295,10 +304,10 @@ def process_audio(url: str, album: str = "", genre: str = ""):
     year = info_dict["upload_date"][:4]
     logging.warning("Using upload date as publication date: %s", year)
     if not album:
-        pattern = r'album "(.+?)"'
-        match = re.search(pattern, info_dict["description"], re.IGNORECASE)
+        pattern = r'[aA]lbum ("(.+?)"|([A-Z]{2,}))'
+        match = re.search(pattern, info_dict["description"])
         if match:
-            album = match.group(1)
+            album = titlecase(match.group(1))
             logging.warning("Extracted album from description: %s", album)
     set_tags(filename, artist, title, year, album, genre)
 
@@ -318,13 +327,11 @@ def edit_audio(audio_file: str):
     sound = AudioSegment.from_file(audio_file, format="mp3")
     logging.info("Stripping silence from audio file.")
     sound.strip_silence()
+    sound.export(audio_file, format="mp3")
 
     # Normalize loudness
-    logging.info("Normalizing loudness.")
-    target_dbfs = -95
-    change_in_dbfs = target_dbfs - sound.dBFS
-    normalized_sound = sound.apply_gain(change_in_dbfs)
-    normalized_sound.export(audio_file, format="mp3")
+    target_db = 95
+    subprocess.run(["mp3gain", "-r", "-p", "-d", str(target_db), audio_file], check=True)
 
 
 def main():
