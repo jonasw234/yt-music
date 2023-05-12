@@ -77,7 +77,7 @@ def normalize_filename(filename: str, uploader: str = "") -> str:
         " official video": "",
         " – official video clip": "",
         f" ({datetime.now().year})": "",
-        f"_ {uploader}": "",
+        f"_ {uploader.lower()}": "",
         # Normalize “featuring”
         " ft. ": " feat. ",
         " ft.": " feat.",
@@ -92,10 +92,18 @@ def normalize_filename(filename: str, uploader: str = "") -> str:
     if len(parts) >= 2 and parts[0] in uploader.lower():
         new_filename = new_filename.replace("： ", " - ", 1)
 
-    # Titlecase can’t handle cases like `hammerfall – hammer of the dawn.mp3` (converts
-    # it to `Hammerfall – Hammer of the dawn.mp3`)
-    # Removing the extension temporarily fixes this
-    new_filename = f"{titlecase(os.path.splitext(new_filename)[0])}.mp3"
+    # Temporarily remove extension (hinders some later operations)
+    new_filename = os.path.splitext(new_filename)[0]
+
+    # Move “feat.” to the end of the title
+    feat_parts = new_filename.split(" feat. ")
+    if len(feat_parts) > 1 and " - " in feat_parts[1]:
+        new_filename = f"{feat_parts[0]} - {feat_parts[1].split(' - ')[1]} feat. {feat_parts[1].split(' - ')[0]}"
+
+    # Titlecase for the filename
+    new_filename = f"{titlecase(new_filename)}.mp3"
+    # feat. should be lowercase
+    new_filename = new_filename.replace(" Feat. ", " feat. ")
 
     logging.debug("New filename: %s", new_filename)
     return new_filename
@@ -304,7 +312,28 @@ def process_audio(url: str, album: str = "", genre: str = ""):
     year = info_dict["upload_date"][:4]
     logging.warning("Using upload date as publication date: %s", year)
     if not album:
-        pattern = r'[aA]lbum ("(.+?)"|([A-Z]{2,}))'
+        # FIXME Album cannot be extracted by yt-dlp:
+        # https://github.com/onnowhere/youtube_music_playlist_downloader/issues/6
+        pattern = (
+            # Prefix: Album (case insensitive) followed by comma or colon (optional) and
+            # a space. Then start capturing
+            r"(?i:album)[,:]? ("
+            # Album title enclosed in double quotes
+            '"(.+?)"|'
+            # Album title enclosed in single quotes
+            "'(.+?)'|"
+            # Album title enclosed in English typographic quotes
+            "“(.+?)”|"
+            # Album title enclosed in German typographic quotes
+            "„(.+?)“|"
+            # Album title enclosed between commas, followed by “out” (e.g. “out now”,
+            # “out DATE”)
+            "([^,]+?), out|"
+            # Album title all uppercase
+            "([A-Z]{2,}(?: [A-Z]{2,})+)"
+            # End capturing group
+            ")"
+        )
         match = re.search(pattern, info_dict["description"])
         if match:
             album = titlecase(match.group(1))
@@ -331,7 +360,9 @@ def edit_audio(audio_file: str):
 
     # Normalize loudness
     target_db = 95
-    subprocess.run(["mp3gain", "-r", "-p", "-d", str(target_db), audio_file], check=True)
+    subprocess.run(
+        ["mp3gain", "-r", "-p", "-d", str(target_db), audio_file], check=True
+    )
 
 
 def main():
