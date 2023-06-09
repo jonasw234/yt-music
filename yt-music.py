@@ -69,6 +69,7 @@ def normalize_filename(filename: str, uploader: str = "") -> str:
         " (official visualizer)": "",
         " (official)": "",
         " (offizielles video)": "",
+        " (performance video)": "",
         " [official video]": "",
         " official audio video": "",
         " official lyric video": "",
@@ -78,6 +79,7 @@ def normalize_filename(filename: str, uploader: str = "") -> str:
         " – official video clip": "",
         f" ({datetime.now().year})": "",
         f"_ {uploader.lower()}": "",
+        f" {uploader.lower()}": "",
         # Normalize “featuring”
         " ft. ": " feat. ",
         " ft.": " feat.",
@@ -93,12 +95,15 @@ def normalize_filename(filename: str, uploader: str = "") -> str:
         new_filename = new_filename.replace("： ", " - ", 1)
 
     # Temporarily remove extension (hinders some later operations)
-    new_filename = os.path.splitext(new_filename)[0]
+    new_filename = os.path.splitext(new_filename)[0].strip()
 
     # Move “feat.” to the end of the title
     feat_parts = new_filename.split(" feat. ")
     if len(feat_parts) > 1 and " - " in feat_parts[1]:
-        new_filename = f"{feat_parts[0]} - {feat_parts[1].split(' - ')[1]} feat. {feat_parts[1].split(' - ')[0]}"
+        new_filename = (
+            f"{feat_parts[0]} - {feat_parts[1].split(' - ')[1]} feat. "
+            f"{feat_parts[1].split(' - ')[0]}"
+        )
 
     # Titlecase for the filename
     new_filename = f"{titlecase(new_filename)}.mp3"
@@ -315,9 +320,9 @@ def process_audio(url: str, album: str = "", genre: str = ""):
         # FIXME Album cannot be extracted by yt-dlp:
         # https://github.com/onnowhere/youtube_music_playlist_downloader/issues/6
         pattern = (
-            # Prefix: Album (case insensitive) followed by comma or colon (optional) and
-            # a space. Then start capturing
-            r"(?i:album)[,:]? ("
+            # Prefix: Album, EP, or Order (case insensitive) followed by comma or colon
+            # (optional) and a space.
+            r"(?i:album|ep|order)[,:]?\s+"
             # Album title enclosed in double quotes
             '"(.+?)"|'
             # Album title enclosed in single quotes
@@ -327,17 +332,17 @@ def process_audio(url: str, album: str = "", genre: str = ""):
             # Album title enclosed in German typographic quotes
             "„(.+?)“|"
             # Album title enclosed between commas, followed by “out” (e.g. “out now”,
-            # “out DATE”)
-            "([^,]+?), out|"
+            # “out DATE”) or a period
+            r"([^,]+?)\b|"
             # Album title all uppercase
-            "([A-Z]{2,}(?: [A-Z]{2,})+)"
-            # End capturing group
-            ")"
+            r"([A-Z]{2,}(?:\s+[A-Z]{2,})+)"
         )
         match = re.search(pattern, info_dict["description"])
         if match:
             album = titlecase(match.group(1))
             logging.warning("Extracted album from description: %s", album)
+    else:
+        logging.warning("Using album supplied by user: %s", album)
     set_tags(filename, artist, title, year, album, genre)
 
     # Move file to appropriate directory
