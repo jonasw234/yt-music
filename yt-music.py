@@ -24,7 +24,8 @@ DESTINATION = "Q:\\"
 
 def normalize_filename(filename: str, uploader: str = "") -> str:
     """
-    Normalize filename by replacing certain characters and removing unnecessary information.
+    Normalize filename by replacing certain characters and removing unnecessary
+    information.
 
     Parameters
     ----------
@@ -95,7 +96,8 @@ def normalize_filename(filename: str, uploader: str = "") -> str:
         new_filename = new_filename.replace("： ", " - ", 1)
 
     # Temporarily remove extension (hinders some later operations)
-    new_filename = os.path.splitext(new_filename)[0].strip()
+    new_filename, extension = os.path.splitext(new_filename)
+    new_filename = new_filename.strip()
 
     # Move “feat.” to the end of the title
     feat_parts = new_filename.split(" feat. ")
@@ -106,11 +108,11 @@ def normalize_filename(filename: str, uploader: str = "") -> str:
         )
 
     # Titlecase for the filename
-    new_filename = f"{titlecase(new_filename)}.mp3"
+    new_filename = f"{titlecase(new_filename)}{extension}"
     # feat. should be lowercase
     new_filename = new_filename.replace(" Feat. ", " feat. ")
 
-    logging.debug("New filename: %s", new_filename)
+    logging.info("New filename: %s", new_filename)
     return new_filename
 
 
@@ -138,7 +140,11 @@ def download_audio(url: str) -> Tuple[str, dict[str, str]]:
             "extract-audio": True,
             "sponsorblock-remove": "all",
             "outtmpl": "%(title)s.%(ext)s",
-            "postprocessors": [{"key": "FFmpegExtractAudio", "preferredcodec": "mp3"}],
+            "postprocessors": [
+                {"key": "FFmpegExtractAudio", "preferredcodec": "mp3"},
+                {"key": "SponsorBlock", "categories": ["all"]},
+                {"key": "ModifyChapters", "remove_sponsor_segments": ["all"]},
+            ],
         }
     ) as ydl:
         info_dict = ydl.extract_info(url, download=False)
@@ -250,7 +256,8 @@ def find_genre(artist: str, artist_dir_path: str = "") -> str:
         # Look for the row in the infobox that contains the artist’s genre
         for row in infobox.find_all("tr"):
             if row.th and (row.th.text in ("Genres", "Genre(s)")):
-                # If we found the right row, extract the genre(s) and return the first one
+                # If we found the right row, extract the genre(s) and return the first
+                # one
                 return ";".join(
                     [titlecase(a.text).replace("-", " ") for a in row.td.find_all("a")]
                 )
@@ -301,6 +308,12 @@ def process_audio(url: str, album: str = "", genre: str = ""):
     # Normalize filename
     new_filename = normalize_filename(filename, info_dict["uploader"])
 
+    try:
+        os.rename(filename, new_filename)
+    except FileExistsError:
+        # Probably an error during the previous download, so just remove the old file
+        os.remove(filename)
+
     artist, title = "", ""
     try:
         artist, title = new_filename.split(" - ", 1)
@@ -311,7 +324,7 @@ def process_audio(url: str, album: str = "", genre: str = ""):
         artist = titlecase(info_dict["uploader"].replace(" - Topic", ""))
 
     # Trim silence at beginning and end, normalize to 95 dB
-    edit_audio(filename)
+    edit_audio(new_filename)
 
     # Set tags (artist, title, date)
     year = info_dict["upload_date"][:4]
@@ -320,9 +333,10 @@ def process_audio(url: str, album: str = "", genre: str = ""):
         # FIXME Album cannot be extracted by yt-dlp:
         # https://github.com/onnowhere/youtube_music_playlist_downloader/issues/6
         pattern = (
-            # Prefix: Album, EP, or Order (case insensitive) followed by comma or colon
-            # (optional) and a space.
-            r"(?i:album|ep|order)[,:]?\s+"
+            # Prefix: Album, Single, EP, or Order (case insensitive) followed by comma
+            # or colon (optional) and whitespace.
+            r"(?i:album|single|ep|order)[,:]?\s+"
+            "("  # Beginning of possible album title
             # Album title enclosed in double quotes
             '"(.+?)"|'
             # Album title enclosed in single quotes
@@ -331,22 +345,40 @@ def process_audio(url: str, album: str = "", genre: str = ""):
             "“(.+?)”|"
             # Album title enclosed in German typographic quotes
             "„(.+?)“|"
-            # Album title enclosed between commas, followed by “out” (e.g. “out now”,
-            # “out DATE”) or a period
+            # Album title enclosed between commas (e.g. “new album, Album title, out
+            # now”) or a period
             r"([^,]+?)\b|"
             # Album title all uppercase
             r"([A-Z]{2,}(?:\s+[A-Z]{2,})+)"
+            ")"  # End of possible album title
         )
-        match = re.search(pattern, info_dict["description"])
+        # TODO Test this new iteration with more videos
+        # Sometimes useful for nested enclosings (new album, “TITLE”, ...)
+        match = re.findall(pattern, info_dict["description"])[-1][1]
         if match:
-            album = titlecase(match.group(1))
-            logging.warning("Extracted album from description: %s", album)
+            try:
+                if isinstance(match, str):
+                    album = titlecase(match)
+                else:
+                    album = titlecase(match.group(1))
+                logging.warning("Extracted album from description: %s", album)
+            except TypeError:
+                logging.error(
+                    "Regex for album extraction failed. "
+                    '`info_dict["description"]` for debugging purposes: %s. Trying to '
+                    "extract with pattern %s.",
+                    info_dict["description"],
+                    pattern,
+                )
+        else:
+            # Not nested or nothing found, try without nesting
+            match = re.search(pattern, info_dict["description"])
     else:
         logging.warning("Using album supplied by user: %s", album)
-    set_tags(filename, artist, title, year, album, genre)
+    set_tags(new_filename, artist, title, year, album, genre)
 
     # Move file to appropriate directory
-    move_file(filename, artist, title)
+    move_file(new_filename, artist, title)
 
 
 def edit_audio(audio_file: str):
@@ -364,10 +396,8 @@ def edit_audio(audio_file: str):
     sound.export(audio_file, format="mp3")
 
     # Normalize loudness
-    target_db = 95
-    subprocess.run(
-        ["mp3gain", "-r", "-p", "-d", str(target_db), audio_file], check=True
-    )
+    logging.info("Normalizing loudness of audio file.")
+    subprocess.run(["mp3gain", "-r", "-p", audio_file], check=True)
 
 
 def main():
