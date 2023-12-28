@@ -354,25 +354,25 @@ def process_audio(url: str, album: str = "", genre: str = ""):
         )
         # TODO Test this new iteration with more videos
         # Sometimes useful for nested enclosings (new album, “TITLE”, ...)
-        match = re.findall(pattern, info_dict["description"])[-1][1]
-        if match:
-            try:
+        try:
+            match = re.findall(pattern, info_dict["description"])[-1][1]
+            if match:
                 if isinstance(match, str):
                     album = titlecase(match)
                 else:
                     album = titlecase(match.group(1))
                 logging.warning("Extracted album from description: %s", album)
-            except TypeError:
-                logging.error(
-                    "Regex for album extraction failed. "
-                    '`info_dict["description"]` for debugging purposes: %s. Trying to '
-                    "extract with pattern %s.",
-                    info_dict["description"],
-                    pattern,
-                )
-        else:
-            # Not nested or nothing found, try without nesting
-            match = re.search(pattern, info_dict["description"])
+            else:
+                # Not nested or nothing found, try without nesting
+                match = re.search(pattern, info_dict["description"])
+        except (TypeError, IndexError):
+            logging.error(
+                "Regex for album extraction failed. "
+                '`info_dict["description"]` for debugging purposes: %s. Trying to '
+                "extract with pattern %s.",
+                info_dict["description"],
+                pattern,
+            )
     else:
         logging.warning("Using album supplied by user: %s", album)
     set_tags(new_filename, artist, title, year, album, genre)
