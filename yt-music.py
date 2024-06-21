@@ -352,20 +352,14 @@ def process_audio(url: str, album: str = "", genre: str = ""):
             r"([A-Z]{2,}(?:\s+[A-Z]{2,})+)"
             ")"  # End of possible album title
         )
-        # TODO Test this new iteration with more videos
-        # Sometimes useful for nested enclosings (new album, “TITLE”, ...)
-        try:
-            match = re.search(pattern, info_dict["description"])
-            if match:
-                if isinstance(match, str):
-                    album = titlecase(match)
-                else:
-                    album = titlecase(match.group(1))
-                logging.warning("Extracted album from description: %s", album)
+        match = re.search(pattern, info_dict["description"])
+        if match:
+            if isinstance(match, str):
+                album = titlecase(match)
             else:
-                # Not nested or nothing found, try without nesting
-                match = re.search(pattern, info_dict["description"])
-        except (TypeError, IndexError):
+                album = titlecase(match.group(1))
+            logging.warning("Extracted album from description: %s", album)
+        else:
             logging.error(
                 "Regex for album extraction failed. "
                 '`info_dict["description"]` for debugging purposes: %s. Trying to '
