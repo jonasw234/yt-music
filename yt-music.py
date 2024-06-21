@@ -336,9 +336,9 @@ def process_audio(url: str, album: str = "", genre: str = ""):
             # Prefix: Album, Single, EP, or Order (case insensitive) followed by comma
             # or colon (optional) and whitespace.
             r"(?:album|Album|ALBUM|single|Single|SINGLE|ep|EP|order|Order|ORDER)[,:]?\s+"
-            "("  # Beginning of possible album title
+            "(?:"  # Beginning of possible album title
             # Album title enclosed in double quotes
-            '"(.+?)"|'
+            '\"(.+?)\"|'
             # Album title enclosed in single quotes
             "'(.+?)'|"
             # Album title enclosed in English typographic quotes
@@ -355,7 +355,7 @@ def process_audio(url: str, album: str = "", genre: str = ""):
         # TODO Test this new iteration with more videos
         # Sometimes useful for nested enclosings (new album, “TITLE”, ...)
         try:
-            match = re.findall(pattern, info_dict["description"])[-1][1]
+            match = re.search(pattern, info_dict["description"])
             if match:
                 if isinstance(match, str):
                     album = titlecase(match)
