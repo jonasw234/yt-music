@@ -140,6 +140,7 @@ def download_audio(url: str) -> Tuple[str, dict[str, str]]:
             "extract-audio": True,
             "sponsorblock-remove": "all",
             "outtmpl": "%(title)s.%(ext)s",
+            "format": "bestaudio/best",
             "postprocessors": [
                 {"key": "FFmpegExtractAudio", "preferredcodec": "mp3"},
                 {"key": "SponsorBlock", "categories": ["all"]},
