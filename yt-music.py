@@ -258,9 +258,7 @@ def find_genre(artist: str, artist_dir_path: str = "") -> str:
             if row.th and (row.th.text in ("Genres", "Genre(s)")):
                 # If we found the right row, extract the genre(s) and return the first
                 # one
-                return ";".join(
-                    [titlecase(a.text).replace("-", " ") for a in row.td.find_all("a")]
-                )
+                return titlecase(row.td.find("a").text).replace("-", " ")
 
     logging.error(
         "Still missing genre tag (no reference files or Wikipedia information found)"
@@ -336,7 +334,7 @@ def process_audio(url: str, album: str = "", genre: str = ""):
             # Prefix: Album, Single, EP, or Order (case insensitive) followed by comma
             # or colon (optional) and whitespace.
             r"(?:album|Album|ALBUM|single|Single|SINGLE|ep|EP|order|Order|ORDER)[,:]?\s+"
-            "(?:"  # Beginning of possible album title
+            "("  # Beginning of possible album title
             # Album title enclosed in double quotes
             '\"(.+?)\"|'
             # Album title enclosed in single quotes
@@ -347,7 +345,7 @@ def process_audio(url: str, album: str = "", genre: str = ""):
             "„(.+?)“|"
             # Album title enclosed between commas (e.g. “new album, Album title, out
             # now”) or a period
-            r"([^,]+?)\b|"
+            r"([^,]+)\b|"
             # Album title all uppercase
             r"([A-Z]{2,}(?:\s+[A-Z]{2,})+)"
             ")"  # End of possible album title
@@ -391,7 +389,7 @@ def edit_audio(audio_file: str):
 
     # Normalize loudness
     logging.info("Normalizing loudness of audio file.")
-    subprocess.run(["mp3gain", "-r", "-p", audio_file], check=True)
+    _ = subprocess.run(["mp3gain", "-r", "-p", audio_file], check=True)
 
 
 def main():
