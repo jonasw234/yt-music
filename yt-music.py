@@ -356,7 +356,11 @@ def process_audio(url: str, album: str = "", genre: str = ""):
             if isinstance(match, str):
                 album = titlecase(match)
             else:
-                album = titlecase(match.group(1))
+                # More specific matches are at the end, so reverse the list
+                for group in match.groups()[::-1]:
+                    if group:
+                        album = titlecase(group)
+                        break
             logging.warning("Extracted album from description: %s", album)
         else:
             logging.error(
