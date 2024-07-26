@@ -322,9 +322,6 @@ def process_audio(url: str, album: str = "", genre: str = ""):
         title = new_filename.replace(".mp3", "")
         artist = titlecase(info_dict["uploader"].replace(" - Topic", ""))
 
-    # Trim silence at beginning and end, normalize to 95 dB
-    edit_audio(new_filename)
-
     # Set tags (artist, title, date)
     year = info_dict["upload_date"][:4]
     logging.warning("Using upload date as publication date: %s", year)
@@ -374,6 +371,9 @@ def process_audio(url: str, album: str = "", genre: str = ""):
         logging.warning("Using album supplied by user: %s", album)
     set_tags(new_filename, artist, title, year, album, genre)
 
+    # Trim silence at beginning and end, normalize to 89 dB
+    edit_audio(new_filename)
+              
     # Move file to appropriate directory
     move_file(new_filename, artist, title)
 
