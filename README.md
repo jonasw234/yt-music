@@ -12,3 +12,5 @@ Should be seen as an inspiration and adopted for your needs/favorite music chann
 ## Python version
 The Python version is currently in beta, but will be the one I update in the future. It’s not tested extensively yet though, so there might be more bugs than in the Bash version.  
 It needs [`mp3gain`](https://mp3gain.sourceforge.net/download.php) installed in your PATH.
+
+The Python version additionally needs [YouTube OAuth2 for yt-dlp](https://github.com/coletdjnz/yt-dlp-youtube-oauth2) as was recommended in [yt-dlp/yt-dlp#10128 (comment)](https://github.com/yt-dlp/yt-dlp/issues/10128#issuecomment-2157140324).
