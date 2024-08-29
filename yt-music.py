@@ -151,7 +151,13 @@ def download_audio(url: str) -> Tuple[str, dict[str, str]]:
         }
     ) as ydl:
         info_dict = ydl.extract_info(url, download=False)
-        ydl.download(url)
+        try:
+            _ = ydl.download(url)
+        except Exception as e:
+            if "Unable to communicate with SponsorBlock API" in str(e):
+                logging.warning("SponsorBlock API is not available, segments might still be in the audio.")
+            else:
+                raise e
         filename = f"{os.path.splitext(ydl.prepare_filename(info_dict))[0]}.mp3"
         return filename, info_dict if info_dict else {"": ""}
 
