@@ -142,8 +142,7 @@ def download_audio(url: str) -> Tuple[str, dict[str, str]]:
             "sponsorblock-remove": "all",
             "outtmpl": "%(title)s.%(ext)s",
             "format": "bestaudio/best",
-            "username": "oauth2",
-            "password": "",
+            "cookies": "~/.cache/yt-dlp/cookies.YouTube.txt",
             "postprocessors": [
                 {"key": "FFmpegExtractAudio", "preferredcodec": "mp3"},
                 {"key": "SponsorBlock", "categories": ["all"]},
