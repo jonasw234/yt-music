@@ -339,7 +339,7 @@ def process_audio(url: str, album: str = "", genre: str = ""):
         pattern = (
             # Prefix: Album, Single, EP, or Order (case insensitive) followed by comma
             # or colon (optional) and whitespace.
-            r"(?:album|Album|ALBUM|single|Single|SINGLE|ep|EP|order|Order|ORDER)[,:]?\s+"
+            r"(?:album|Album|ALBUM|single|Single|SINGLE|ep|EP|order|Order|ORDER)[,:]?\s+(?!out via)"
             "("  # Beginning of possible album title
             # Album title enclosed in double quotes
             '\"(.+?)\"|'
