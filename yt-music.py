@@ -243,31 +243,34 @@ def find_genre(artist: str, artist_dir_path: str = "") -> str:
                 return str(reference_file.tag.genre)
 
     # If a genre is still not found, try to find it on Wikipedia
-    for lang in ["en", "de"]:
-        wikipedia.set_lang(lang)
-        try:
-            page = wikipedia.page(artist)
-        except wikipedia.exceptions.PageError:
-            logging.error("Couldn’t find a %s Wikipedia page for %s", lang, artist)
-            continue
+    try:
+        for lang in ["en", "de"]:
+            wikipedia.set_lang(lang)
+            try:
+                page = wikipedia.page(artist)
+            except wikipedia.exceptions.PageError:
+                logging.error("Couldn’t find a %s Wikipedia page for %s", lang, artist)
+                continue
 
-        # Next, parse the HTML content of the page using BeautifulSoup
-        soup = BeautifulSoup(page.html(), "html.parser")
+            # Next, parse the HTML content of the page using BeautifulSoup
+            soup = BeautifulSoup(page.html(), "html.parser")
 
-        # Look for the infobox on the page, which contains information about the artist
-        infobox = soup.find("table", {"class": "infobox"})
-        if not infobox:
-            logging.error(
-                "Couldn’t find an infobox on the %s %s Wikipedia page", lang, artist
-            )
-            continue
+            # Look for the infobox on the page, which contains information about the artist
+            infobox = soup.find("table", {"class": "infobox"})
+            if not infobox:
+                logging.error(
+                    "Couldn’t find an infobox on the %s %s Wikipedia page", lang, artist
+                )
+                continue
 
-        # Look for the row in the infobox that contains the artist’s genre
-        for row in infobox.find_all("tr"):
-            if row.th and (row.th.text in ("Genres", "Genre(s)")):
-                # If we found the right row, extract the genre(s) and return the first
-                # one
-                return titlecase(row.td.find("a").text).replace("-", " ")
+            # Look for the row in the infobox that contains the artist’s genre
+            for row in infobox.find_all("tr"):
+                if row.th and (row.th.text in ("Genres", "Genre(s)")):
+                    # If we found the right row, extract the genre(s) and return the first
+                    # one
+                    return titlecase(row.td.find("a").text).replace("-", " ")
+    except wikipedia.exceptions.DisambiguationError:
+        logging.error("Couldn’t find a Wikipedia page for %s", artist)
 
     logging.error(
         "Still missing genre tag (no reference files or Wikipedia information found)"
