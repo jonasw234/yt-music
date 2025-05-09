@@ -72,6 +72,7 @@ def normalize_filename(filename: str, uploader: str = "") -> str:
         " (official)": "",
         " (offizielles video)": "",
         " (performance video)": "",
+        " (static video)": "",
         " [official video]": "",
         " official audio video": "",
         " official lyric video": "",
