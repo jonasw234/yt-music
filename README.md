@@ -1,4 +1,5 @@
 # yt-music
+
 Downloads music from YouTube channels. Set download folder with `export YT_MUSIC_PATH="DESTINATION"`.  
 
 Needs [`yt-dlp`](https://github.com/yt-dlp/yt-dlp), [`titlecase`](https://github.com/wezm/titlecase), [`mp3splt`](https://github.com/mp3splt/mp3splt), [`eyeD3`](https://github.com/nicfit/eyeD3), and [`jq`](https://github.com/stedolan/jq).  
@@ -10,7 +11,11 @@ It tries to download the file (skipping parts marked by SponsorBlock API), set c
 Should be seen as an inspiration and adopted for your needs/favorite music channels.
 
 ## Python version (the still supported one)
+
 The Python version is the successor of the bash script.  
-It needs [`mp3gain`](https://mp3gain.sourceforge.net/download.php) installed in your PATH.
+
+Set download folder in the  `DESTINATION` variable at the top of the script.  
+
+Needs [`mp3rgain`](https://github.com/M-Igashi/mp3rgain), [`sox`](https://sourceforge.net/projects/sox/), and optionally [`wl-paste`](https://github.com/bugaevc/wl-clipboard) installed in your PATH.
 
 The Python version needs your YouTube cookies to download files. Extract cookies as explained here: [FAQ · yt-dlp/yt-dlp Wiki · GitHub](https://github.com/yt-dlp/yt-dlp/wiki/FAQ#how-do-i-pass-cookies-to-yt-dlp) and make them long-lived as explained here: [Extractors · yt-dlp/yt-dlp Wiki · GitHub](https://github.com/yt-dlp/yt-dlp/wiki/Extractors#exporting-youtube-cookies)
