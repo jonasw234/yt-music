@@ -14,7 +14,6 @@ from typing import Tuple
 import eyed3
 import wikipedia
 from bs4 import BeautifulSoup
-from pydub import AudioSegment
 from titlecase import titlecase
 from yt_dlp import YoutubeDL
 
@@ -399,10 +398,27 @@ def edit_audio(audio_file: str):
     audio_file : str
         The path to the audio file to be edited.
     """
-    sound = AudioSegment.from_file(audio_file, format="mp3")
     logging.info("Stripping silence from audio file.")
-    sound.strip_silence()
-    sound.export(audio_file, format="mp3")
+        cut_file = tempfile.NamedTemporaryFile(suffix=".mp3")
+    _ = subprocess.run(
+        [
+            "sox",
+            audio_file,
+            cut_file.name,
+            "silence",
+            "1",
+            "0.1",
+            "1%",
+            "reverse",
+            "silence",
+            "1",
+            "0.1",
+            "1%",
+            "reverse",
+        ],
+        check=True,
+    )
+    shutil.move(cut_file.name, audio_file)
 
     # Normalize loudness
     logging.info("Normalizing loudness of audio file.")
@@ -414,15 +430,26 @@ def main():
     Download audio file, process it, set appropriate tags, and move it to the
     appropriate directory.
     """
-    # Print usage information
-    if len(sys.argv) < 2 or len(sys.argv) > 4:
+    if len(sys.argv) < 2 or (len(sys.argv) == 2 and sys.argv[1] == ""):
+        # Use the clipboard contents by default
+        url = (
+            subprocess.run("wl-paste", capture_output=True)
+            .stdout.decode("utf-8")
+            .strip()
+        )
+        if "youtube.com" not in url:
+            logging.error("Clipboard does not contain a YouTube URL.")
+            sys.exit(1)
+    elif len(sys.argv) > 4:
+        # Print usage information
         logging.error(
             "Usage: %s https://www.youtube.com/watch?v=aDaoQk081IY [ALBUM] [GENRE]",
             sys.argv[0],
         )
         sys.exit(1)
+    else:
+        url = sys.argv[1]
 
-    url = sys.argv[1]
     album = sys.argv[2] if len(sys.argv) >= 3 else ""
     genre = sys.argv[3] if len(sys.argv) >= 4 else ""
 
