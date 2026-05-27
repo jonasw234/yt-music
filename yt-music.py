@@ -185,10 +185,12 @@ def set_tags(
     """
     logging.info("Setting tags.")
     audio_file = eyed3.load(filename)
-    if not audio_file or not audio_file.tag:
-        # Handle the case where the file couldn’t be loaded or has no tags
-        logging.error("eyeD3 wasn’t able to load the file or find any tags.")
+    if not audio_file:
+        # Handle the case where the file couldn’t be loaded
+        logging.error("eyeD3 wasn’t able to load the file.")
         sys.exit(2)
+    if not audio_file.tag:
+        audio_file.initTag()
     tag = audio_file.tag
 
     # Fix artist casing if necessary
