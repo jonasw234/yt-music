@@ -439,7 +439,7 @@ def main():
             .stdout.decode("utf-8")
             .strip()
         )
-        if "youtube.com" not in url:
+        if "youtube.com" not in url and "youtu.be" not in url:
             logging.error("Clipboard does not contain a YouTube URL.")
             sys.exit(1)
     elif len(sys.argv) > 4:
