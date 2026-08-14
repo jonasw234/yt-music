@@ -331,9 +331,14 @@ def process_audio(url: str, album: str = "", genre: str = ""):
         artist, title = new_filename.split(" - ", 1)
         title = title.replace(".mp3", "")
     except ValueError:
-        # Sometimes artists have their own channel and publish songs only with the title
-        title = new_filename.replace(".mp3", "")
-        artist = titlecase(info_dict["uploader"].replace(" - Topic", ""))
+        try:
+            # Sometimes artists have their own channel and publish songs only with the title
+            title = new_filename.replace(".mp3", "")
+            artist = titlecase(info_dict["uploader_id"].replace(" - Topic", ""))
+        except AttributeError:
+            # Creator topic channel
+            title = new_filename.replace(".mp3", "")
+            artist = " feat. ".join(info_dict["artists"])
 
     # Set tags (artist, title, date)
     year = info_dict["upload_date"][:4]
