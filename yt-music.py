@@ -18,7 +18,7 @@ from titlecase import titlecase
 from yt_dlp import YoutubeDL
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s:%(message)s")
-DESTINATION = "Q:\\"
+DESTINATION = os.getenv("YT_MUSIC_DEST")
 
 
 def normalize_filename(filename: str, uploader: str = "") -> str:
