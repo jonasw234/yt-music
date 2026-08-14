@@ -14,7 +14,7 @@ Should be seen as an inspiration and adopted for your needs/favorite music chann
 
 The Python version is the successor of the bash script.  
 
-Set download folder in the  `DESTINATION` variable at the top of the script.  
+Set download folder by setting the `YT_MUSIC_DEST` environment variable before running the script.  
 
 Needs [`mp3rgain`](https://github.com/M-Igashi/mp3rgain), [`sox`](https://sourceforge.net/projects/sox/), and optionally [`wl-paste`](https://github.com/bugaevc/wl-clipboard) installed in your PATH.
 
