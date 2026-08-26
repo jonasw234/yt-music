@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+G#!/usr/bin/env python3
 """Download music videos from YouTube and process them by stripping silence, normalizing
 loudness, setting tags, and moving to a directory."""
 import logging
@@ -300,22 +300,23 @@ def move_file(filename: str, artist: str, title: str):
     logging.info("Moved file to %s", output_path)
 
 
-def process_audio(url: str, album: str = "", genre: str = ""):
+def process_audio(filename: str, info_dict: dict[str, str], album: str = "", genre: str = ""):
     """
-    Download the audio file from YouTube, process it, set appropriate tags, and move it
-    to the appropriate directory.
+    Process the audio file by normalizing the filename, setting tags, trimming silence,
+    and moving it to the appropriate directory.
+
 
     Parameters
     ----------
-    url : str
-        The URL of the YouTube video to download.
+    filename : str
+        The name of the file to process
+    info_dict : dict[str, str]
+        The info dict download from YouTube to process for metadata
     album : str, optional
         The name of the album, by default "".
     genre : str, optional
         The genre of the song, by default "".
     """
-    # Download file
-    filename, info_dict = download_audio(url)
 
     # Normalize filename
     new_filename = normalize_filename(filename, info_dict["uploader"])
@@ -444,13 +445,19 @@ def main():
             .stdout.decode("utf-8")
             .strip()
         )
-        if "youtube.com" not in url and "youtu.be" not in url:
-            logging.error("Clipboard does not contain a YouTube URL.")
+        if (
+            "youtube.com" not in url
+            and "youtu.be" not in url
+            and not os.path.isfile(url)
+        ):
+            logging.error(
+                "Clipboard does not contain a YouTube URL or valid local file path."
+            )
             sys.exit(1)
     elif len(sys.argv) > 4:
         # Print usage information
         logging.error(
-            "Usage: %s https://www.youtube.com/watch?v=aDaoQk081IY [ALBUM] [GENRE]",
+            "Usage: %s https://www.youtube.com/watch?v=aDaoQk081IY|LOCAL_PATH [ALBUM] [GENRE]",
             sys.argv[0],
         )
         sys.exit(1)
@@ -460,7 +467,24 @@ def main():
     album = sys.argv[2] if len(sys.argv) >= 3 else ""
     genre = sys.argv[3] if len(sys.argv) >= 4 else ""
 
-    process_audio(url, album, genre)
+    info_dict_path = ""
+    if os.path.isfile(url):
+        # Locally stored file, no need to download
+        filename = url
+        info_dict_path = f"{os.path.splitext(url)[0]}.info.json"
+        if not os.path.isfile(info_dict_path):
+            raise FileNotFoundError(
+                "The info dict could not be found under %s", info_dict_path
+            )
+        with open(info_dict_path, "r") as info_dict_contents:
+            info_dict = load(info_dict_contents)
+    else:
+        # Download file
+        filename, info_dict = download_audio(url)
+    process_audio(filename, info_dict, album, genre)
+    if info_dict_path != "":
+        # For locally downloaded files this is only a temporary requirement
+        os.remove(info_dict_path)
 
 
 if __name__ == "__main__":
