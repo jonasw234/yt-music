@@ -194,7 +194,17 @@ def set_tags(
     tag = audio_file.tag
 
     # Fix artist casing if necessary
-    artist_dir_path = str(Path(os.path.join(DESTINATION, artist)).resolve())
+    artist_dir_path = next(
+        (
+            entry
+            for entry in Path(DESTINATION).iterdir()
+            if entry.name.casefold() == artist.casefold()
+        ),
+        None,
+    )
+    if not artist_dir_path:
+        artist_dir_path = str(Path(os.path.join(DESTINATION, artist)).resolve())
+
     if os.path.isdir(artist_dir_path):
         # If an artist directory already exists, use its name instead of the one passed
         # as a parameter
